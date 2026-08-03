@@ -4,7 +4,7 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../src/generated/prisma"
 }
 
@@ -12,39 +12,38 @@ datasource db {
   provider = "postgresql"
 }
 
-enum ApplicationStatus{
-  APPLIED           @map("applied")
-  REVIEW            @map("review")
-  HR_INTERVIEW      @map("hr_interview")
-  USER_INTERVIEW    @map("user_interview")
-  OFFER             @map("offer")
-  REJECTED          @map("rejected")
-  HIRE              @map("hire")
+enum ApplicationStatus {
+  APPLIED        @map("applied")
+  REVIEW         @map("review")
+  HR_INTERVIEW   @map("hr_interview")
+  USER_INTERVIEW @map("user_interview")
+  OFFER          @map("offer")
+  REJECTED       @map("rejected")
+  HIRE           @map("hire")
 
   @@map("application_status")
 }
 
 enum Platform {
-  LIKEDIN           @map("linkedin")
-  JOBSTREET         @map("jobstreet")
-  GLINTS            @map("glints")
-  INEED             @map("ineed")
-  COMPANY_WEBSITE   @map("company_website")
-  EMAIL             @map("email")
-  GFORM             @map("gform")
-  OTHER             @map("other")
+  LIKEDIN         @map("linkedin")
+  JOBSTREET       @map("jobstreet")
+  GLINTS          @map("glints")
+  INEED           @map("ineed")
+  COMPANY_WEBSITE @map("company_website")
+  EMAIL           @map("email")
+  GFORM           @map("gform")
+  OTHER           @map("other")
 }
 
-model User {  
+model User {
+  id       Int    @id @default(autoincrement())
+  name     String @db.VarChar(150)
+  email    String @unique @db.VarChar(150)
+  password String @db.VarChar(255)
 
-  id            Int             @id @default(autoincrement())
-  name          String
-  email         String          @unique
-  password      String
-
-  createdAt     DateTime        @default(now()) @map("created_at")
-  updatedAt     DateTime        @updatedAt @map("updated_at")
-  deletedAt     DateTime?       @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   companies     Company[]
   applications  Application[]
@@ -53,57 +52,54 @@ model User {
   @@map("users")
 }
 
-model Company {  
-
-  id              Int           @id @default(autoincrement())
-  userId          Int           @map("user_id")
-  companyName     String        @map("company_name")
-  companyAddress  String?       @map("company_address")
-
-  createdAt       DateTime      @default(now()) @map("created_at")
-  updatedAt       DateTime      @updatedAt @map("updated_at")
-  deletedAt       DateTime?     @map("deleted_at")
-
-  user            User          @relation(fields: [userId], references: [id])
-  applications    Application[]
-
-  @@map("companies")
-}
-
-model Application {  
-
-  id                  Int       @id @default(autoincrement())
-  userId              Int       @map("user_id")
-  companyId           Int       @map("company_id")
-  status              String
-  position            String
-  appliedDate         DateTime  @map("applied_date") @db.Date
-  expectResponseDate  DateTime? @map("expect_response_date") @db.Date
-  platform            String
-  notes               String?
-
-  createdAt           DateTime  @default(now()) @map("created_at")
-  updatedAt           DateTime  @updatedAt @map("updated_at")
-  deletedAt           DateTime? @map("deleted_at")
-
-  user                User      @relation(fields: [userId], references: [id])
-  company             Company   @relation(fields: [companyId], references: [id])
-
-  @@map("applications")
-}
-
-model RefreshToken {
-
-  id        Int       @id @default(autoincrement())
-  userId    Int       @map("user_id")
-  token     String  
-  expiresAt DateTime  @map("expires_at")
+model Company {
+  id             Int     @id @default(autoincrement())
+  userId         Int     @map("user_id")
+  companyName    String  @map("company_name") @db.VarChar(255)
+  companyAddress String? @map("company_address")
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
-  user      User      @relation(fields: [userId], references: [id])
+  user         User          @relation(fields: [userId], references: [id])
+  applications Application[]
+
+  @@map("companies")
+}
+
+model Application {
+  id                 Int       @id @default(autoincrement())
+  userId             Int       @map("user_id")
+  companyId          Int       @map("company_id")
+  status             ApplicationStatus
+  position           String @db.VarChar(255)
+  appliedDate        DateTime  @map("applied_date") @db.Date
+  expectResponseDate DateTime? @map("expect_response_date") @db.Date
+  platform           Platform
+  notes              String?
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  user    User    @relation(fields: [userId], references: [id])
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@map("applications")
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  token     String
+  expiresAt DateTime @map("expires_at")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  user User @relation(fields: [userId], references: [id])
 
   @@map("refresh_tokens")
 }
