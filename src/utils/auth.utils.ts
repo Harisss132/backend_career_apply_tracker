@@ -1,9 +1,10 @@
 import jwt from "jsonwebtoken";
 import type { CookieOptions } from "express";
 import type { JWTPayload } from "../types/auth.type.js";
+import { env } from "../config/env.js";
 
-const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || "very_secret_access"
-const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || "very_secret_refresh"
+const ACCESS_SECRET = env.JWT_ACCESS_SECRET || "very_secret_access"
+const REFRESH_SECRET = env.JWT_REFRESH_SECRET || "very_secret_refresh"
 
 export const generateAccessToken = (payload: JWTPayload ) => {
     return jwt.sign(payload, ACCESS_SECRET, {expiresIn: "15m" });

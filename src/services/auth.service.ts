@@ -1,5 +1,6 @@
 import { prisma } from "../config/database.js";
 import type { registerDTO, loginDTO } from "../types/auth.type.js";
+import { AppError } from "../utils/AppError.js";
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "../utils/auth.utils.js";
 import bcrypt from 'bcrypt';
 
@@ -7,7 +8,7 @@ export const registerUser = async (input: registerDTO) => {
     const { name, email, password } = input
 
     const existingUser = await prisma.user.findUnique({where: {email}});
-    if(existingUser) throw new Error("Email sudah terdaftar")
+    if(existingUser) throw new AppError("Email sudah terdaftar", 400)
 
     const hashedPassword = await bcrypt.hash(password, 10)
 
@@ -21,10 +22,10 @@ export const loginUser = async (input: loginDTO) => {
     const {email, password} = input;
 
     const user = await prisma.user.findUnique({where: {email}});
-    if(!user) throw new Error("Email atau password salah");
+    if(!user) throw new AppError("Email atau password salah", 400);
 
     const isPasswordvalid = await bcrypt.compare(password, user.password);
-    if(!isPasswordvalid) throw new Error("Email atau password salah");
+    if(!isPasswordvalid) throw new AppError("Email atau password salah", 401);
 
     const accessToken = generateAccessToken({userId: user.id, email: user.email});
     const refreshToken = generateRefreshToken(user.id)
@@ -44,7 +45,7 @@ export const loginUser = async (input: loginDTO) => {
 }
 
 export const logoutUser = async (refreshToken: string) => {
-    if (!refreshToken) throw new Error("Refresh token tidak valid")
+    if (!refreshToken) throw new AppError("Refresh token tidak valid", 401)
     
     const tokenInDb = await prisma.refreshToken.findFirst({
         where: {token: refreshToken},
@@ -59,28 +60,67 @@ export const logoutUser = async (refreshToken: string) => {
     return {success: true}
 }
 
-export const refreshAccessToken = async (refreshToken: string) => {
-    if(!refreshToken) throw new Error("Refresh token tidak valid");
+export const refreshAccessToken = async (oldRefreshToken: string) => {
+    if(!oldRefreshToken) throw new AppError("Refresh token tidak valid", 401);
 
     const tokenInDb = await prisma.refreshToken.findFirst({
         where: {
-            token: refreshToken,
-            expiresAt: {gte: new Date()}
+            token: oldRefreshToken,
+            expiresAt:{gte: new Date()},
+            deletedAt: null
         }
     });
 
-    if(!tokenInDb) throw new Error("Reresh token invalid atau sudah expired");
+    if(!tokenInDb) throw new AppError("Refresh token invalid atau sudah expired", 401)
 
-    try {
-        const decode = verifyRefreshToken(refreshToken);
+    const decoded = verifyRefreshToken(oldRefreshToken);
 
-        const user = await prisma.user.findUnique({ where: {id: decode.userId}});
-        if(!user) throw new Error("User tidak ditemukan");
+    const user = await prisma.user.findUnique({
+        where: {id: decoded.userId}
+    });
 
-        const newAccessToken = generateAccessToken({userId: user.id, email: user.email});
+    if(!user) throw new AppError("User tidak ditemukan", 404)
+    
+    await prisma.refreshToken.delete({
+        where: {id: tokenInDb.id}
+    });
 
-        return {accessToken: newAccessToken}
-    } catch (err) {
-        throw new Error("Verifikasi refresh token gagal.")
+    const newAccessToken = generateAccessToken({
+        userId: user.id,
+        email: user.email
+    });
+
+    const newRefreshToken = generateRefreshToken(user.id);
+
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    await prisma.refreshToken.create({
+        data: {
+            userId: user.id,
+            token: newRefreshToken,
+            expiresAt
+        }
+    });
+
+    return {
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken
     }
+}
+
+export const getProfile = async (userId: number) => {
+    const user = await prisma.user.findUnique({
+        where: {id: userId},
+        select: {
+            id: true,
+            name: true,
+            email: true,
+            createdAt: true
+        }
+    });
+
+    if(!user) throw new AppError("User tidak ditemukan", 404);
+
+    return user;
 }
