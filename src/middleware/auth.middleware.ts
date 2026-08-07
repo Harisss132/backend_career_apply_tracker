@@ -14,7 +14,7 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
                 message: "Akses di tolak, token tidak ditemukan"
             });
         }
-        const token = authHeader.split("")[1] 
+        const token = authHeader.split(" ")[1] 
 
         if(!token) {
             return res.status(401).json({

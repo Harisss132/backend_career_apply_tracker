@@ -12,7 +12,7 @@
     // "types": [],
     // For nodejs:
     "lib": ["esnext"],
-    "types": ["node"],
+    "types": ["jest","node"],
     // and npm install -D @types/node
 
     // Other Outputs
@@ -40,13 +40,14 @@
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true,
-    "ignoreDeprecations": "6.0"
+    "ignoreDeprecations": "5.0"
   },
   "include": [
     "src/**/*"
-  ],
+, "jest.config.ts"  ],
   "exclude": [
     "node_modules",
-    "prisma.config.ts"
+    "prisma.config.ts",
+    "jest.config.ts"
   ]
 }
